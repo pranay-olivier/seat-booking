@@ -47,7 +47,7 @@ export default function Home() {
       .from('seats')
       .select('*')
       .eq('active', true)
-      .order('seatnumber')
+      .order('seat_number')
  
     const { data: dayBookings } = await supabase
       .from('bookings')
@@ -138,7 +138,7 @@ export default function Home() {
           </div>
  
           {floors.map(floor => {
-            const floorSeats = seats.filter(s => s.seatnumber.startsWith(floor + '.'))
+            const floorSeats = seats.filter(s => s.seat_number.startsWith(floor + '.'))
             if (floorSeats.length === 0) return null
             return (
               <div key={floor} style={{ marginBottom: '2rem' }}>
@@ -163,7 +163,7 @@ export default function Home() {
                           fontWeight: 500
                         }}
                       >
-                        {seat.seatnumber}
+                        {seat.seat_number}
                       </button>
                     )
                   })}

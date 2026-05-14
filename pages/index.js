@@ -9,7 +9,6 @@ const supabase = createClient(
 function getNext14Weekdays() {
   const days = []
   const d = new Date()
-  // Use UK timezone
   d.setHours(0, 0, 0, 0)
   while (days.length < 14) {
     const day = d.getDay()
@@ -52,7 +51,7 @@ export default function Home() {
     const { data: dayBookings } = await supabase
       .from('bookings')
       .select('*')
-      .eq('bookingdate', dateStr)
+      .eq('booking_date', dateStr)
  
     setSeats(allSeats || [])
     setBookings(dayBookings || [])
@@ -63,28 +62,26 @@ export default function Home() {
   async function toggleSeat(seat) {
     if (!selectedDate) return
     const dateStr = formatDate(selectedDate)
-    const existing = bookings.find(b => b.seatid === seat.id)
+    const existing = bookings.find(b => b.seat_id === seat.id)
  
     if (existing) {
-      // Cancel booking
       const { error } = await supabase
         .from('bookings')
         .delete()
         .eq('id', existing.id)
       if (!error) {
         setBookings(bookings.filter(b => b.id !== existing.id))
-        setMessage(`Seat ${seat.seatnumber} has been cancelled.`)
+        setMessage(`Seat ${seat.seat_number} has been cancelled.`)
       }
     } else {
-      // Make booking
       const { data, error } = await supabase
         .from('bookings')
-        .insert({ seatid: seat.id, bookingdate: dateStr })
+        .insert({ seat_id: seat.id, booking_date: dateStr })
         .select()
         .single()
       if (!error && data) {
         setBookings([...bookings, data])
-        setMessage(`Seat ${seat.seatnumber} is now booked for ${formatDisplay(selectedDate)}.`)
+        setMessage(`Seat ${seat.seat_number} is now booked for ${formatDisplay(selectedDate)}.`)
       } else {
         setMessage('This seat was just taken. Please choose another.')
       }
@@ -145,7 +142,7 @@ export default function Home() {
                 <h3 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', color: '#444' }}>Floor {floor}</h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {floorSeats.map(seat => {
-                    const isBooked = bookings.some(b => b.seatid === seat.id)
+                    const isBooked = bookings.some(b => b.seat_id === seat.id)
                     return (
                       <button
                         key={seat.id}

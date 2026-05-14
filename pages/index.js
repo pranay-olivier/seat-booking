@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
  
 const supabase = createClient(
   'https://aidkjaptzbwmetjvpylg.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpZGtqYXB0emJ3bWV0anZweWxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2ODU0MjYsImV4cCI6MjA5NDI2MTQyNn0.Rs4d3O001P3pPAb8qUFETcNRYijp2_8PFaZjy0kNlHs'
 )
+ 
+const USERS = {
+  'Dept.W': 'QMUL'
+}
  
 function getNext14Weekdays() {
   const days = []
@@ -29,11 +33,40 @@ function formatDisplay(date) {
 }
  
 export default function Home() {
+  const [loggedIn, setLoggedIn] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
   const [selectedDate, setSelectedDate] = useState(null)
   const [seats, setSeats] = useState([])
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+ 
+  useEffect(() => {
+    const saved = sessionStorage.getItem('sb_auth')
+    if (saved === 'true') setLoggedIn(true)
+  }, [])
+ 
+  function handleLogin() {
+    if (USERS[username] && USERS[username] === password) {
+      sessionStorage.setItem('sb_auth', 'true')
+      setLoggedIn(true)
+      setLoginError('')
+    } else {
+      setLoginError('Incorrect username or password.')
+    }
+  }
+ 
+  function handleLogout() {
+    sessionStorage.removeItem('sb_auth')
+    setLoggedIn(false)
+    setUsername('')
+    setPassword('')
+    setSelectedDate(null)
+    setSeats([])
+    setBookings([])
+  }
  
   const weekdays = getNext14Weekdays()
  
@@ -90,9 +123,52 @@ export default function Home() {
  
   const floors = ['1', '2', '3']
  
+  if (!loggedIn) {
+    return (
+      <div style={{ fontFamily: 'sans-serif', maxWidth: 400, margin: '6rem auto', padding: '2rem', border: '1px solid #e5e7eb', borderRadius: 12 }}>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Seat Booking</h1>
+        <p style={{ color: '#666', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Please log in to continue.</p>
+ 
+        <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 4, color: '#444' }}>Username</label>
+        <input
+          type="text"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleLogin()}
+          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', marginBottom: 12, fontSize: '0.95rem', boxSizing: 'border-box' }}
+        />
+ 
+        <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 4, color: '#444' }}>Password</label>
+        <input
+          type="password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleLogin()}
+          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', marginBottom: 12, fontSize: '0.95rem', boxSizing: 'border-box' }}
+        />
+ 
+        {loginError && (
+          <p style={{ color: '#dc2626', fontSize: '0.85rem', marginBottom: 12 }}>{loginError}</p>
+        )}
+ 
+        <button
+          onClick={handleLogin}
+          style={{ width: '100%', padding: '10px', borderRadius: 6, border: 'none', background: '#1a1a1a', color: '#fff', fontSize: '0.95rem', cursor: 'pointer' }}
+        >
+          Log in
+        </button>
+      </div>
+    )
+  }
+ 
   return (
     <div style={{ fontFamily: 'sans-serif', maxWidth: 900, margin: '0 auto', padding: '2rem 1rem' }}>
-      <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Seat Booking</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+        <h1 style={{ fontSize: '1.5rem' }}>Seat Booking</h1>
+        <button onClick={handleLogout} style={{ fontSize: '0.8rem', padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', color: '#666' }}>
+          Log out
+        </button>
+      </div>
       <p style={{ color: '#666', marginBottom: '1.5rem' }}>Select a date, then click a seat to book or cancel it.</p>
  
       <h2 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Select a date</h2>

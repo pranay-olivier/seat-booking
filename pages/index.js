@@ -186,6 +186,9 @@ export default function Home() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
         <h1 style={{ fontSize: '1.5rem' }}>Dept W Seat Booking</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/mybookings" style={{ fontSize: '0.85rem', color: '#fff', textDecoration: 'none', background: '#059669', border: '1px solid #047857', padding: '6px 14px', borderRadius: 6, fontWeight: 500 }}>
+            My Bookings
+          </Link>
           <Link href="/floorplans" style={{ fontSize: '0.85rem', color: '#fff', textDecoration: 'none', background: '#2563eb', border: '1px solid #1d4ed8', padding: '6px 14px', borderRadius: 6, fontWeight: 500 }}>
             Floor Plans
           </Link>

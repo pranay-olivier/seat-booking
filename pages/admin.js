@@ -1,3 +1,4 @@
+S
 import { createClient } from '@supabase/supabase-js'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -14,7 +15,10 @@ const USERS = {
 }
  
 function formatDate(date) {
-  return date.toISOString().split('T')[0]
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
  
 function formatDisplay(dateStr) {
@@ -133,13 +137,20 @@ export default function Admin() {
       setBlockMessage('Please enter a seat number and date.')
       return
     }
-    const seat = seats.find(s => s.seat_number === blockSeatNumber.trim())
-    if (!seat) {
+ 
+    const { data: seatData } = await supabase
+      .from('seats')
+      .select('*')
+      .eq('seat_number', blockSeatNumber.trim())
+      .single()
+ 
+    if (!seatData) {
       setBlockMessage('Seat number not found. Please check and try again.')
       return
     }
+ 
     const { error } = await supabase.from('blocked_seats').insert({
-      seat_id: seat.id,
+      seat_id: seatData.id,
       blocked_date: blockDate,
       reason: blockReason || null
     })

@@ -184,12 +184,12 @@ export default function Home() {
   return (
     <div style={{ fontFamily: 'sans-serif', maxWidth: 900, margin: '0 auto', padding: '2rem 1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-        <h1 style={{ fontSize: '1.5rem' }}>Seat Booking</h1>
+        <h1 style={{ fontSize: '1.5rem' }}>Dept W Seat Booking</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/floorplans" style={{ fontSize: '0.85rem', color: '#1a1a1a', textDecoration: 'none', border: '1px solid #ccc', padding: '4px 10px', borderRadius: 6 }}>
+          <Link href="/floorplans" style={{ fontSize: '0.85rem', color: '#fff', textDecoration: 'none', background: '#2563eb', border: '1px solid #1d4ed8', padding: '6px 14px', borderRadius: 6, fontWeight: 500 }}>
             Floor Plans
           </Link>
-          <Link href="/admin" style={{ fontSize: '0.85rem', color: '#1a1a1a', textDecoration: 'none', border: '1px solid #ccc', padding: '4px 10px', borderRadius: 6 }}>
+          <Link href="/admin" style={{ fontSize: '0.85rem', color: '#fff', textDecoration: 'none', background: '#7c3aed', border: '1px solid #6d28d9', padding: '6px 14px', borderRadius: 6, fontWeight: 500 }}>
             Admin
           </Link>
           <span style={{ fontSize: '0.85rem', color: '#666' }}>Logged in as <strong>{currentUser}</strong></span>

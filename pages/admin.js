@@ -61,8 +61,14 @@ export default function Admin() {
     if (savedUser) {
       setLoggedIn(true)
       setCurrentUser(savedUser)
+      loadAllSeats()
     }
   }, [])
+ 
+  async function loadAllSeats() {
+    const { data: allSeats } = await supabase.from('seats').select('*').order('seat_number')
+    setSeats(allSeats || [])
+  }
  
   function handleLogin() {
     if (USERS[username] && USERS[username] === password) {
@@ -70,6 +76,7 @@ export default function Admin() {
       setLoggedIn(true)
       setCurrentUser(username)
       setLoginError('')
+      loadAllSeats()
     } else {
       setLoginError('Incorrect username or password.')
     }

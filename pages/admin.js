@@ -13,20 +13,6 @@ const USERS = {
   'User.S': 'QMUL'
 }
  
-function getNext14Weekdays() {
-  const days = []
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  while (days.length < 14) {
-    const day = d.getDay()
-    if (day !== 0 && day !== 6) {
-      days.push(new Date(d))
-    }
-    d.setDate(d.getDate() + 1)
-  }
-  return days
-}
- 
 function formatDate(date) {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -34,22 +20,36 @@ function formatDate(date) {
   return `${y}-${m}-${d}`
 }
  
-function formatDisplay(date) {
-  return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+function formatDisplay(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
  
-export default function Home() {
+function getNext14Weekdays() {
+  const days = []
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  while (days.length < 14) {
+    const day = d.getDay()
+    if (day !== 0 && day !== 6) days.push(new Date(d))
+    d.setDate(d.getDate() + 1)
+  }
+  return days
+}
+ 
+export default function Admin() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [selectedDate, setSelectedDate] = useState(null)
-  const [seats, setSeats] = useState([])
   const [bookings, setBookings] = useState([])
-  const [blockedSeats, setBlockedSeats] = useState([])
+  const [seats, setSeats] = useState([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+ 
+  const weekdays = getNext14Weekdays()
  
   useEffect(() => {
     const savedUser = sessionStorage.getItem('sb_user')
@@ -77,244 +77,121 @@ export default function Home() {
     setUsername('')
     setPassword('')
     setSelectedDate(null)
-    setSeats([])
     setBookings([])
+    setSeats([])
     setMessage('')
   }
  
-  const weekdays = getNext14Weekdays()
- 
-  async function loadSeats(date) {
+  async function loadBookings(date) {
     setLoading(true)
     setMessage('')
     const dateStr = formatDate(date)
- 
-    const { data: allSeats } = await supabase
-      .from('seats')
-      .select('*')
-      .eq('active', true)
-      .order('seat_number')
- 
-    const { data: dayBookings } = await supabase
-      .from('bookings')
-      .select('*')
-      .eq('booking_date', dateStr)
- 
-    const { data: dayBlocked } = await supabase
-      .from('blocked_seats')
-      .select('*')
-      .eq('blocked_date', dateStr)
- 
+    const { data: allSeats } = await supabase.from('seats').select('*').order('seat_number')
+    const { data: dayBookings } = await supabase.from('bookings').select('*').eq('booking_date', dateStr)
     setSeats(allSeats || [])
     setBookings(dayBookings || [])
-    setBlockedSeats(dayBlocked || [])
     setSelectedDate(date)
     setLoading(false)
   }
  
-  async function handleSeatClick(seat) {
-    if (!selectedDate) return
-    const dateStr = formatDate(selectedDate)
-    const existing = bookings.find(b => b.seat_id === seat.id)
- 
-    if (existing) {
-      // Cancel own booking
-      if (existing.booked_by !== currentUser) return
-      const { error } = await supabase
-        .from('bookings')
-        .delete()
-        .eq('id', existing.id)
-      if (!error) {
-        setBookings(bookings.filter(b => b.id !== existing.id))
-        setMessage(`Seat ${seat.seat_number} has been cancelled.`)
-      }
-    } else {
-      // Check if user already has a booking for this date
-      const alreadyBooked = bookings.find(b => b.booked_by === currentUser)
-      if (alreadyBooked) {
-        const bookedSeat = seats.find(s => s.id === alreadyBooked.seat_id)
-        setMessage(`You already have a booking for this date (Seat ${bookedSeat ? bookedSeat.seat_number : ''}). Please cancel it first if you want a different seat.`)
-        return
-      }
- 
-      const { data, error } = await supabase
-        .from('bookings')
-        .insert({ seat_id: seat.id, booking_date: dateStr, booked_by: currentUser })
-        .select()
-        .single()
-      if (!error && data) {
-        setBookings([...bookings, data])
-        setMessage(`Seat ${seat.seat_number} is now booked for ${formatDisplay(selectedDate)}.`)
-      } else {
-        setMessage('This seat could not be booked. Please try again.')
-      }
+  async function cancelBooking(bookingId, seatNumber) {
+    const { error } = await supabase.from('bookings').delete().eq('id', bookingId)
+    if (!error) {
+      setBookings(bookings.filter(b => b.id !== bookingId))
+      setMessage(`Booking for seat ${seatNumber} has been cancelled.`)
     }
   }
- 
-  const floors = ['1', '2', '3']
  
   if (!loggedIn) {
     return (
       <div style={{ fontFamily: 'sans-serif', maxWidth: 400, margin: '6rem auto', padding: '2rem', border: '1px solid #e5e7eb', borderRadius: 12 }}>
-        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Seat Booking</h1>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Admin Dashboard</h1>
         <p style={{ color: '#666', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Please log in to continue.</p>
- 
         <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 4, color: '#444' }}>Username</label>
-        <input
-          type="text"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleLogin()}
-          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', marginBottom: 12, fontSize: '0.95rem', boxSizing: 'border-box' }}
-        />
- 
+        <input type="text" value={username} onChange={e => setUsername(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', marginBottom: 12, fontSize: '0.95rem', boxSizing: 'border-box' }} />
         <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 4, color: '#444' }}>Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleLogin()}
-          style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', marginBottom: 12, fontSize: '0.95rem', boxSizing: 'border-box' }}
-        />
- 
-        {loginError && (
-          <p style={{ color: '#dc2626', fontSize: '0.85rem', marginBottom: 12 }}>{loginError}</p>
-        )}
- 
-        <button
-          onClick={handleLogin}
-          style={{ width: '100%', padding: '10px', borderRadius: 6, border: 'none', background: '#1a1a1a', color: '#fff', fontSize: '0.95rem', cursor: 'pointer' }}
-        >
-          Log in
-        </button>
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #d1d5db', marginBottom: 12, fontSize: '0.95rem', boxSizing: 'border-box' }} />
+        {loginError && <p style={{ color: '#dc2626', fontSize: '0.85rem', marginBottom: 12 }}>{loginError}</p>}
+        <button onClick={handleLogin} style={{ width: '100%', padding: '10px', borderRadius: 6, border: 'none', background: '#1a1a1a', color: '#fff', fontSize: '0.95rem', cursor: 'pointer' }}>Log in</button>
       </div>
     )
   }
  
+  const totalSeats = seats.length
+  const bookedCount = bookings.length
+  const availableCount = totalSeats - bookedCount
+ 
   return (
     <div style={{ fontFamily: 'sans-serif', maxWidth: 900, margin: '0 auto', padding: '2rem 1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-        <h1 style={{ fontSize: '1.5rem' }}>Dept W Seat Booking</h1>
+        <h1 style={{ fontSize: '1.5rem' }}>Admin Dashboard</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link href="/mybookings" style={{ fontSize: '0.85rem', color: '#fff', textDecoration: 'none', background: '#059669', border: '1px solid #047857', padding: '6px 14px', borderRadius: 6, fontWeight: 500 }}>
-            My Bookings
-          </Link>
-          <Link href="/floorplans" style={{ fontSize: '0.85rem', color: '#fff', textDecoration: 'none', background: '#2563eb', border: '1px solid #1d4ed8', padding: '6px 14px', borderRadius: 6, fontWeight: 500 }}>
-            Floor Plans
-          </Link>
-          <Link href="/admin" style={{ fontSize: '0.85rem', color: '#fff', textDecoration: 'none', background: '#7c3aed', border: '1px solid #6d28d9', padding: '6px 14px', borderRadius: 6, fontWeight: 500 }}>
-            Admin
-          </Link>
+          <Link href="/" style={{ fontSize: '0.85rem', color: '#1a1a1a', textDecoration: 'none', border: '1px solid #ccc', padding: '4px 10px', borderRadius: 6 }}>← Booking Page</Link>
           <span style={{ fontSize: '0.85rem', color: '#666' }}>Logged in as <strong>{currentUser}</strong></span>
-          <button onClick={handleLogout} style={{ fontSize: '0.8rem', padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', color: '#666' }}>
-            Log out
-          </button>
+          <button onClick={handleLogout} style={{ fontSize: '0.8rem', padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', color: '#666' }}>Log out</button>
         </div>
       </div>
-      <p style={{ color: '#666', marginBottom: '1.5rem' }}>Select a date, then click a seat to book it. You can only book 1 seat per day and cancel your own bookings.</p>
+      <p style={{ color: '#666', marginBottom: '1.5rem' }}>View and manage all bookings for any date.</p>
  
       <h2 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Select a date</h2>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: '1.5rem' }}>
         {weekdays.map((d, i) => {
           const isSelected = selectedDate && formatDate(d) === formatDate(selectedDate)
           return (
-            <button
-              key={i}
-              onClick={() => loadSeats(d)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: 6,
-                border: '1px solid #ccc',
-                background: isSelected ? '#1a1a1a' : '#fff',
-                color: isSelected ? '#fff' : '#1a1a1a',
-                cursor: 'pointer',
-                fontSize: '0.85rem'
-              }}
-            >
-              {formatDisplay(d)}
+            <button key={i} onClick={() => loadBookings(d)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #ccc', background: isSelected ? '#1a1a1a' : '#fff', color: isSelected ? '#fff' : '#1a1a1a', cursor: 'pointer', fontSize: '0.85rem' }}>
+              {d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
             </button>
           )
         })}
       </div>
  
-      {message && (
-        <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 6, padding: '10px 14px', marginBottom: '1.5rem', color: '#713f12' }}>
-          {message}
-        </div>
-      )}
- 
-      {loading && <p>Loading seats...</p>}
+      {message && <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, padding: '10px 14px', marginBottom: '1.5rem', color: '#166534' }}>{message}</div>}
+      {loading && <p>Loading...</p>}
  
       {!loading && selectedDate && (
         <>
-          <div style={{ display: 'flex', gap: 16, marginBottom: '1rem', fontSize: '0.8rem', color: '#555', flexWrap: 'wrap' }}>
-            <span><span style={{ display: 'inline-block', width: 14, height: 14, background: '#fff', border: '1px solid #ccc', borderRadius: 3, marginRight: 4, verticalAlign: 'middle' }}></span>Available</span>
-            <span><span style={{ display: 'inline-block', width: 14, height: 14, background: '#fef9c3', border: '1px solid #ca8a04', borderRadius: 3, marginRight: 4, verticalAlign: 'middle' }}></span>Standing</span>
-            <span><span style={{ display: 'inline-block', width: 14, height: 14, background: '#22c55e', border: '1px solid #16a34a', borderRadius: 3, marginRight: 4, verticalAlign: 'middle' }}></span>Your booking</span>
-            <span><span style={{ display: 'inline-block', width: 14, height: 14, background: '#d1d5db', border: '1px solid #9ca3af', borderRadius: 3, marginRight: 4, verticalAlign: 'middle' }}></span>Booked by others</span>
+          <div style={{ display: 'flex', gap: 16, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+            {[{ label: 'Booked', value: bookedCount, bg: '#fee2e2', color: '#991b1b' }, { label: 'Available', value: availableCount, bg: '#dcfce7', color: '#166534' }, { label: 'Total', value: totalSeats, bg: '#f3f4f6', color: '#1a1a1a' }].map(stat => (
+              <div key={stat.label} style={{ background: stat.bg, borderRadius: 8, padding: '12px 20px', textAlign: 'center', minWidth: 80 }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 600, color: stat.color }}>{stat.value}</div>
+                <div style={{ fontSize: '0.8rem', color: stat.color }}>{stat.label}</div>
+              </div>
+            ))}
           </div>
  
-          {floors.map(floor => {
-            const floorSeats = seats.filter(s => s.seat_number.startsWith(floor + '.'))
-            if (floorSeats.length === 0) return null
-            return (
-              <div key={floor} style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', color: '#444' }}>Floor {floor}</h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {floorSeats.map(seat => {
-                    const booking = bookings.find(b => b.seat_id === seat.id)
-                    const isMyBooking = booking && booking.booked_by === currentUser
-                    const isOthersBooking = booking && booking.booked_by !== currentUser
-                    const isBlocked = blockedSeats.some(b => b.seat_id === seat.id)
-                    const isStanding = seat.label === 'Standing'
-                    const isClickable = !isOthersBooking && !isBlocked
- 
-                    let bg = '#fff'
-                    let borderColor = '#d1d5db'
-                    let color = '#1a1a1a'
- 
-                    if (isMyBooking) {
-                      bg = '#22c55e'; borderColor = '#16a34a'; color = '#fff'
-                    } else if (isOthersBooking || isBlocked) {
-                      bg = '#d1d5db'; borderColor = '#9ca3af'; color = '#6b7280'
-                    } else if (isStanding) {
-                      bg = '#fef9c3'; borderColor = '#ca8a04'; color = '#713f12'
-                    }
- 
-                    return (
-                      <button
-                        key={seat.id}
-                        onClick={() => isClickable && handleSeatClick(seat)}
-                        title={isStanding ? 'Standing desk' : ''}
-                        style={{
-                          width: 72,
-                          height: isStanding ? 52 : 40,
-                          borderRadius: 6,
-                          border: '1px solid',
-                          borderColor,
-                          background: bg,
-                          color,
-                          cursor: isClickable ? 'pointer' : 'not-allowed',
-                          fontSize: '0.75rem',
-                          fontWeight: 500,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          lineHeight: 1.2
-                        }}
-                      >
-                        <span>{seat.seat_number}</span>
-                        {isStanding && <span style={{ fontSize: '0.6rem', opacity: 0.8 }}>Standing</span>}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
+          {bookings.length === 0 ? (
+            <p style={{ color: '#666', fontStyle: 'italic' }}>No bookings for this date.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+              <thead>
+                <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 500 }}>Seat</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 500 }}>Floor</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 500 }}>Type</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 500 }}>Booked By</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 500 }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map(booking => {
+                  const seat = seats.find(s => s.id === booking.seat_id)
+                  if (!seat) return null
+                  return (
+                    <tr key={booking.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <td style={{ padding: '10px 12px', fontWeight: 500 }}>{seat.seat_number}</td>
+                      <td style={{ padding: '10px 12px', color: '#666' }}>Floor {seat.seat_number.split('.')[0]}</td>
+                      <td style={{ padding: '10px 12px' }}><span style={{ background: seat.label === 'Standing' ? '#fef9c3' : '#f3f4f6', color: seat.label === 'Standing' ? '#713f12' : '#666', padding: '2px 8px', borderRadius: 20, fontSize: '0.8rem' }}>{seat.label === 'Standing' ? 'Standing' : 'Standard'}</span></td>
+                      <td style={{ padding: '10px 12px', color: '#666' }}>{booking.booked_by}</td>
+                      <td style={{ padding: '10px 12px' }}><button onClick={() => cancelBooking(booking.id, seat.seat_number)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', cursor: 'pointer', fontSize: '0.8rem' }}>Cancel</button></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
         </>
       )}
     </div>
   )
 }
+ 

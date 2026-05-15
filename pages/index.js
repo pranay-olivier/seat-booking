@@ -1,3 +1,4 @@
+S
 import { createClient } from '@supabase/supabase-js'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
@@ -108,6 +109,7 @@ export default function Home() {
     const existing = bookings.find(b => b.seat_id === seat.id)
  
     if (existing) {
+      // Cancel own booking
       if (existing.booked_by !== currentUser) return
       const { error } = await supabase
         .from('bookings')
@@ -118,6 +120,14 @@ export default function Home() {
         setMessage(`Seat ${seat.seat_number} has been cancelled.`)
       }
     } else {
+      // Check if user already has a booking for this date
+      const alreadyBooked = bookings.find(b => b.booked_by === currentUser)
+      if (alreadyBooked) {
+        const bookedSeat = seats.find(s => s.id === alreadyBooked.seat_id)
+        setMessage(`You already have a booking for this date (Seat ${bookedSeat ? bookedSeat.seat_number : ''}). Please cancel it first if you want a different seat.`)
+        return
+      }
+ 
       const { data, error } = await supabase
         .from('bookings')
         .insert({ seat_id: seat.id, booking_date: dateStr, booked_by: currentUser })
@@ -186,7 +196,7 @@ export default function Home() {
           </button>
         </div>
       </div>
-      <p style={{ color: '#666', marginBottom: '1.5rem' }}>Select a date, then click a seat to book it. You can only cancel your own bookings.</p>
+      <p style={{ color: '#666', marginBottom: '1.5rem' }}>Select a date, then click a seat to book it. You can only book 1 seat per day and cancel your own bookings.</p>
  
       <h2 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>Select a date</h2>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: '2rem' }}>
@@ -213,7 +223,7 @@ export default function Home() {
       </div>
  
       {message && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, padding: '10px 14px', marginBottom: '1.5rem', color: '#166534' }}>
+        <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 6, padding: '10px 14px', marginBottom: '1.5rem', color: '#713f12' }}>
           {message}
         </div>
       )}
@@ -292,4 +302,3 @@ export default function Home() {
     </div>
   )
 }
- 

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
  
 const supabase = createClient(
   'https://aidkjaptzbwmetjvpylg.supabase.co',
@@ -107,7 +108,6 @@ export default function Home() {
     const existing = bookings.find(b => b.seat_id === seat.id)
  
     if (existing) {
-      // Only allow cancel if this user booked it
       if (existing.booked_by !== currentUser) return
       const { error } = await supabase
         .from('bookings')
@@ -177,6 +177,9 @@ export default function Home() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
         <h1 style={{ fontSize: '1.5rem' }}>Seat Booking</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link href="/floorplans" style={{ fontSize: '0.85rem', color: '#1a1a1a', textDecoration: 'none', border: '1px solid #ccc', padding: '4px 10px', borderRadius: 6 }}>
+            Floor Plans
+          </Link>
           <span style={{ fontSize: '0.85rem', color: '#666' }}>Logged in as <strong>{currentUser}</strong></span>
           <button onClick={handleLogout} style={{ fontSize: '0.8rem', padding: '4px 10px', borderRadius: 6, border: '1px solid #ccc', background: '#fff', cursor: 'pointer', color: '#666' }}>
             Log out

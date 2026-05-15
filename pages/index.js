@@ -224,6 +224,7 @@ export default function Home() {
         <>
           <div style={{ display: 'flex', gap: 16, marginBottom: '1rem', fontSize: '0.8rem', color: '#555', flexWrap: 'wrap' }}>
             <span><span style={{ display: 'inline-block', width: 14, height: 14, background: '#fff', border: '1px solid #ccc', borderRadius: 3, marginRight: 4, verticalAlign: 'middle' }}></span>Available</span>
+            <span><span style={{ display: 'inline-block', width: 14, height: 14, background: '#fef9c3', border: '1px solid #ca8a04', borderRadius: 3, marginRight: 4, verticalAlign: 'middle' }}></span>Standing</span>
             <span><span style={{ display: 'inline-block', width: 14, height: 14, background: '#22c55e', border: '1px solid #16a34a', borderRadius: 3, marginRight: 4, verticalAlign: 'middle' }}></span>Your booking</span>
             <span><span style={{ display: 'inline-block', width: 14, height: 14, background: '#d1d5db', border: '1px solid #9ca3af', borderRadius: 3, marginRight: 4, verticalAlign: 'middle' }}></span>Booked by others</span>
           </div>
@@ -239,26 +240,46 @@ export default function Home() {
                     const booking = bookings.find(b => b.seat_id === seat.id)
                     const isMyBooking = booking && booking.booked_by === currentUser
                     const isOthersBooking = booking && booking.booked_by !== currentUser
+                    const isStanding = seat.label === 'Standing'
                     const isClickable = !isOthersBooking
+ 
+                    let bg = '#fff'
+                    let borderColor = '#d1d5db'
+                    let color = '#1a1a1a'
+ 
+                    if (isMyBooking) {
+                      bg = '#22c55e'; borderColor = '#16a34a'; color = '#fff'
+                    } else if (isOthersBooking) {
+                      bg = '#d1d5db'; borderColor = '#9ca3af'; color = '#6b7280'
+                    } else if (isStanding) {
+                      bg = '#fef9c3'; borderColor = '#ca8a04'; color = '#713f12'
+                    }
  
                     return (
                       <button
                         key={seat.id}
                         onClick={() => isClickable && handleSeatClick(seat)}
+                        title={isStanding ? 'Standing desk' : ''}
                         style={{
-                          width: 64,
-                          height: 40,
+                          width: 72,
+                          height: isStanding ? 52 : 40,
                           borderRadius: 6,
                           border: '1px solid',
-                          borderColor: isMyBooking ? '#16a34a' : isOthersBooking ? '#9ca3af' : '#d1d5db',
-                          background: isMyBooking ? '#22c55e' : isOthersBooking ? '#d1d5db' : '#fff',
-                          color: isMyBooking ? '#fff' : isOthersBooking ? '#6b7280' : '#1a1a1a',
+                          borderColor,
+                          background: bg,
+                          color,
                           cursor: isClickable ? 'pointer' : 'not-allowed',
-                          fontSize: '0.8rem',
-                          fontWeight: 500
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          lineHeight: 1.2
                         }}
                       >
-                        {seat.seat_number}
+                        <span>{seat.seat_number}</span>
+                        {isStanding && <span style={{ fontSize: '0.6rem', opacity: 0.8 }}>Standing</span>}
                       </button>
                     )
                   })}
@@ -271,3 +292,4 @@ export default function Home() {
     </div>
   )
 }
+ 

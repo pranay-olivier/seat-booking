@@ -44,6 +44,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [seats, setSeats] = useState([])
   const [bookings, setBookings] = useState([])
+  const [blockedSeats, setBlockedSeats] = useState([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
  
@@ -96,8 +97,14 @@ export default function Home() {
       .select('*')
       .eq('booking_date', dateStr)
  
+    const { data: dayBlocked } = await supabase
+      .from('blocked_seats')
+      .select('*')
+      .eq('blocked_date', dateStr)
+ 
     setSeats(allSeats || [])
     setBookings(dayBookings || [])
+    setBlockedSeats(dayBlocked || [])
     setSelectedDate(date)
     setLoading(false)
   }
@@ -255,8 +262,9 @@ export default function Home() {
                     const booking = bookings.find(b => b.seat_id === seat.id)
                     const isMyBooking = booking && booking.booked_by === currentUser
                     const isOthersBooking = booking && booking.booked_by !== currentUser
+                    const isBlocked = blockedSeats.some(b => b.seat_id === seat.id)
                     const isStanding = seat.label === 'Standing'
-                    const isClickable = !isOthersBooking
+                    const isClickable = !isOthersBooking && !isBlocked
  
                     let bg = '#fff'
                     let borderColor = '#d1d5db'
@@ -264,7 +272,7 @@ export default function Home() {
  
                     if (isMyBooking) {
                       bg = '#22c55e'; borderColor = '#16a34a'; color = '#fff'
-                    } else if (isOthersBooking) {
+                    } else if (isOthersBooking || isBlocked) {
                       bg = '#d1d5db'; borderColor = '#9ca3af'; color = '#6b7280'
                     } else if (isStanding) {
                       bg = '#fef9c3'; borderColor = '#ca8a04'; color = '#713f12'

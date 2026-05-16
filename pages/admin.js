@@ -8,9 +8,9 @@ const supabase = createClient(
 )
  
 const USERS = {
-  'Dept.W': 'QMUL',
-  'User.R': 'QMUL',
-  'User.S': 'QMUL'
+  'Dept.W': 'QMDW2026',
+  
+  'User.S': 'QMDW2026'
 }
  
 function formatDate(date) {

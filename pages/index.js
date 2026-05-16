@@ -8,9 +8,9 @@ const supabase = createClient(
 )
  
 const USERS = {
-  'Dept.W': 'QMUL',
-  'User.R': 'QMUL',
-  'User.S': 'QMUL'
+  'Dept.W': 'QMDW2026',
+  
+  'User.S': 'QMDW2026'
 }
  
 function getNext14Weekdays() {
@@ -47,7 +47,6 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [seats, setSeats] = useState([])
   const [bookings, setBookings] = useState([])
-  const [blockedSeats, setBlockedSeats] = useState([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
  
@@ -100,14 +99,8 @@ export default function Home() {
       .select('*')
       .eq('booking_date', dateStr)
  
-    const { data: dayBlocked } = await supabase
-      .from('blocked_seats')
-      .select('*')
-      .eq('blocked_date', dateStr)
- 
     setSeats(allSeats || [])
     setBookings(dayBookings || [])
-    setBlockedSeats(dayBlocked || [])
     setSelectedDate(date)
     setLoading(false)
   }
@@ -118,7 +111,6 @@ export default function Home() {
     const existing = bookings.find(b => b.seat_id === seat.id)
  
     if (existing) {
-      // Cancel own booking
       if (existing.booked_by !== currentUser) return
       const { error } = await supabase
         .from('bookings')
@@ -129,7 +121,6 @@ export default function Home() {
         setMessage(`Seat ${seat.seat_number} has been cancelled.`)
       }
     } else {
-      // Check if user already has a booking for this date
       const alreadyBooked = bookings.find(b => b.booked_by === currentUser)
       if (alreadyBooked) {
         const bookedSeat = seats.find(s => s.id === alreadyBooked.seat_id)
@@ -156,7 +147,7 @@ export default function Home() {
   if (!loggedIn) {
     return (
       <div style={{ fontFamily: 'sans-serif', maxWidth: 400, margin: '6rem auto', padding: '2rem', border: '1px solid #e5e7eb', borderRadius: 12 }}>
-        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Seat Booking</h1>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Dept W Seat Booking</h1>
         <p style={{ color: '#666', marginBottom: '1.5rem', fontSize: '0.9rem' }}>Please log in to continue.</p>
  
         <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: 4, color: '#444' }}>Username</label>
@@ -265,9 +256,8 @@ export default function Home() {
                     const booking = bookings.find(b => b.seat_id === seat.id)
                     const isMyBooking = booking && booking.booked_by === currentUser
                     const isOthersBooking = booking && booking.booked_by !== currentUser
-                    const isBlocked = blockedSeats.some(b => b.seat_id === seat.id)
                     const isStanding = seat.label === 'Standing'
-                    const isClickable = !isOthersBooking && !isBlocked
+                    const isClickable = !isOthersBooking
  
                     let bg = '#fff'
                     let borderColor = '#d1d5db'
@@ -275,7 +265,7 @@ export default function Home() {
  
                     if (isMyBooking) {
                       bg = '#22c55e'; borderColor = '#16a34a'; color = '#fff'
-                    } else if (isOthersBooking || isBlocked) {
+                    } else if (isOthersBooking) {
                       bg = '#d1d5db'; borderColor = '#9ca3af'; color = '#6b7280'
                     } else if (isStanding) {
                       bg = '#fef9c3'; borderColor = '#ca8a04'; color = '#713f12'
